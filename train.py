@@ -27,8 +27,8 @@ trans = transforms.Compose([
     transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5))
 ])
 
-train_A = datasets.ImageFolder('/home/rubabredwan/data/ukiyoe2photo/A', transform=trans)
-train_B = datasets.ImageFolder('/home/rubabredwan/data/ukiyoe2photo/B', transform=trans)
+train_A = datasets.ImageFolder('~/data/ukiyoe2photo/A', transform=trans)
+train_B = datasets.ImageFolder('~/data/ukiyoe2photo/B', transform=trans)
 loader_A = torch.utils.data.DataLoader(train_A, batch_size=1, shuffle=True)
 loader_B = torch.utils.data.DataLoader(train_B, batch_size=1, shuffle=True)
 
@@ -72,10 +72,10 @@ losses = {'loss_G': 0, 'loss_G_identity': 0, 'loss_G_GAN': 0, 'loss_G_cycle': 0,
 
 for epoch in range(1, opt.n_epochs+1):
     for (A, B) in zip(enumerate(loader_A), enumerate(loader_B)):
+        step = step + 1
 
         real_A = A[1][0].to(device)
         real_B = B[1][0].to(device)
-
         target_real = torch.ones(real_A.shape[0]).to(device)
         target_fake = torch.zeros(real_B.shape[0]).to(device)
 
@@ -148,7 +148,6 @@ for epoch in range(1, opt.n_epochs+1):
         if (step % 250 == 0):
             logger.update_images({'real_A': real_A, 'real_B': real_B, 'fake_A': fake_A, 'fake_B': fake_B})
 
-        step = step + 1
         
     torch.save(G_A2B.state_dict(), 'pretrained/G_A2B.pth')
     torch.save(G_B2A.state_dict(), 'pretrained/G_B2A.pth')

@@ -25,8 +25,8 @@ class Logger():
         self.image_windows = {}
 
     def update_images(self, images):
-        A2B = torch.cat((images['real_A'][0], images['fake_B'][0]), 2)
-        B2A = torch.cat((images['real_B'][0], images['fake_A'][0]), 2)
+        A2B = denormalize(torch.cat((images['real_A'][0], images['fake_B'][0]), 2))
+        B2A = denormalize(torch.cat((images['real_B'][0], images['fake_A'][0]), 2))
         if len(self.image_windows) == 0:
             self.image_windows['A2B'] = self.viz.image(A2B, opts={'title': 'A to B'})
             self.image_windows['B2A'] = self.viz.image(B2A, opts={'title': 'B to A'})
