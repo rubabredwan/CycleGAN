@@ -7,17 +7,14 @@ import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 
 import utils
-import time
 from network import Generator, Discriminator
 
-import sys
 import visdom
-import numpy as np
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--n_epochs', type=int, default=50)
-parser.add_argument('--load', type=int, default=1)
+parser.add_argument('--n_epochs', type=int, default=100)
+parser.add_argument('--load_pretrained', type=int, default=0)
 opt = parser.parse_args()
 
 vis = visdom.Visdom()
@@ -35,11 +32,6 @@ train_B = datasets.ImageFolder('/home/rubabredwan/data/ukiyoe2photo/B', transfor
 loader_A = torch.utils.data.DataLoader(train_A, batch_size=1, shuffle=True)
 loader_B = torch.utils.data.DataLoader(train_B, batch_size=1, shuffle=True)
 
-A = iter(loader_A).next()
-B = iter(loader_B).next()
-utils.imshow(torchvision.utils.make_grid(A[0], nrow=4, padding=2), vis)
-utils.imshow(torchvision.utils.make_grid(B[0], nrow=4, padding=2), vis)
-
 G_A2B = Generator(9).to(device)
 G_B2A = Generator(9).to(device)
 D_A = Discriminator().to(device)
@@ -49,7 +41,7 @@ def weights_init(m):
     if isinstance(m, nn.Conv2d):
         torch.nn.init.normal_(m.weight.data, 0.0, 0.02)
 
-if opt.load:
+if opt.load_pretrained:
     G_A2B.load_state_dict(torch.load('pretrained/G_A2B.pth'))
     G_B2A.load_state_dict(torch.load('pretrained/G_B2A.pth'))
     D_A.load_state_dict(torch.load('pretrained/D_A.pth'))
@@ -76,6 +68,8 @@ logger = utils.Logger(opt.n_epochs, len(loader_A), vis)
 
 step = 0
 
+losses = {'loss_G': 0, 'loss_G_identity': 0, 'loss_G_GAN': 0, 'loss_G_cycle': 0, 'loss_D': 0}
+
 for epoch in range(1, opt.n_epochs+1):
     for (A, B) in zip(enumerate(loader_A), enumerate(loader_B)):
 
@@ -89,26 +83,31 @@ for epoch in range(1, opt.n_epochs+1):
 
         optimizer_G.zero_grad()
 
+        # Identity Loss
         same_B = G_A2B(real_B)
         loss_identity_B = criterion_identity(same_B, real_B) * 2.5
         same_A = G_B2A(real_A)
         loss_identity_A = criterion_identity(same_A, real_A) * 2.5
+        losses['loss_G_identity'] += loss_identity_A + loss_identity_B
 
+        # GAN Loss
         fake_B = G_A2B(real_A)
         pred_fake = D_B(fake_B)
         loss_GAN_A2B = criterion_GAN(pred_fake, target_real)
-
         fake_A = G_B2A(real_B)
         pred_fake = D_A(fake_A)
         loss_GAN_B2A = criterion_GAN(pred_fake, target_real)
+        losses['loss_G_GAN'] += loss_GAN_A2B + loss_GAN_B2A
 
+        # Cycle Reconstruction Loss
         recovered_A = G_B2A(fake_B)
         loss_cycle_ABA = criterion_cycle(recovered_A, real_A) * 10.0
-
         recovered_B = G_A2B(fake_A)
         loss_cycle_BAB = criterion_cycle(recovered_B, real_B) * 10.0
+        losses['loss_G_cycle'] += loss_cycle_ABA + loss_cycle_BAB
 
         loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB
+        losses['loss_G'] += loss_G
         loss_G.backward()
         
         optimizer_G.step()
@@ -136,15 +135,18 @@ for epoch in range(1, opt.n_epochs+1):
         loss_D_B = (loss_D_real + loss_D_fake) * 0.5
         
         loss_D = loss_D_A + loss_D_B
+        losses['loss_D'] += loss_D
         loss_D.backward()
         
         optimizer_D.step()
-        
+
+
+        # Update visdom
+        if (step % 50 == 0):
+            logger.update_losses(step, losses)
+            losses = {'loss_G': 0, 'loss_G_identity': 0, 'loss_G_GAN': 0, 'loss_G_cycle': 0, 'loss_D': 0}
         if (step % 250 == 0):
-            
-            logger.log(step, {'loss_G': loss_G, 'loss_G_identity': (loss_identity_A + loss_identity_B), 'loss_G_GAN': (loss_GAN_A2B + loss_GAN_B2A),
-                        'loss_G_cycle': (loss_cycle_ABA + loss_cycle_BAB), 'loss_D': (loss_D_A + loss_D_B)}, 
-                        images={'real_A': real_A, 'real_B': real_B, 'fake_A': fake_A, 'fake_B': fake_B})
+            logger.update_images({'real_A': real_A, 'real_B': real_B, 'fake_A': fake_A, 'fake_B': fake_B})
 
         step = step + 1
         
@@ -153,7 +155,7 @@ for epoch in range(1, opt.n_epochs+1):
     torch.save(D_A.state_dict(), 'pretrained/D_A.pth')
     torch.save(D_B.state_dict(), 'pretrained/D_B.pth')
 
-    for param_group in optimizer_G.param_groups:
-        param_group['lr'] -= 0.0002 / 50
-    for param_group in optimizer_D.param_groups:
-        param_group['lr'] -= 0.0002 / 50
+    # for param_group in optimizer_G.param_groups:
+    #     param_group['lr'] -= 0.0002 / 50
+    # for param_group in optimizer_D.param_groups:
+    #     param_group['lr'] -= 0.0002 / 50

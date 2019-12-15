@@ -24,7 +24,17 @@ class Logger():
         self.loss_windows = {}
         self.image_windows = {}
 
-    def log(self, step, losses=None, images=None):
+    def update_images(self, images):
+        A2B = torch.cat((images['real_A'][0], images['fake_B'][0]), 2)
+        B2A = torch.cat((images['real_B'][0], images['fake_A'][0]), 2)
+        if len(self.image_windows) == 0:
+            self.image_windows['A2B'] = self.viz.image(A2B, opts={'title': 'A to B'})
+            self.image_windows['B2A'] = self.viz.image(B2A, opts={'title': 'B to A'})
+        else:
+            self.viz.image(A2B, win=self.image_windows['A2B'], opts={'title': 'A to B'})
+            self.viz.image(B2A, win=self.image_windows['B2A'], opts={'title': 'B to A'})
+
+    def update_losses(self, step, losses):
 
         self.epoch = step / self.batches_epoch
         self.batch = step % self.batches_epoch
@@ -34,7 +44,7 @@ class Logger():
         self.prev_time = time.time()
 
         for loss_name, loss in losses.items():   
-            temp = loss.cpu().detach().numpy()
+            temp = loss.cpu().detach().numpy() / 50
             sys.stdout.write(' -- %s: %.4f' % (loss_name, temp))
             if loss_name not in self.loss_windows:
                 self.loss_windows[loss_name] = self.viz.line(X=np.array([step]), Y=np.array([temp]), 
@@ -42,17 +52,6 @@ class Logger():
             else:
                 self.viz.line(X=np.array([step]), Y=np.array([temp]), win=self.loss_windows[loss_name], update='append')
 
-        A2B = torch.cat((images['real_A'][0:1], images['fake_B'][0:1]), 0)
-        B2A = torch.cat((images['real_B'][0:1], images['fake_A'][0:1]), 0)
-        A2B = torchvision.utils.make_grid(denormalize(A2B), nrow=1, padding=2)
-        B2A = torchvision.utils.make_grid(denormalize(B2A), nrow=1, padding=2)
-        if len(self.image_windows) == 0:
-            self.image_windows['A2B'] = self.viz.image(A2B, opts={'title':'A to B'})
-            self.image_windows['B2A'] = self.viz.image(B2A, opts={'title':'B to A'})
-        else:
-            self.viz.image(A2B, win = self.image_windows['A2B'], opts={'title':'A to B'})
-            self.viz.image(B2A, win = self.image_windows['B2A'], opts={'title':'B to A'})
-            
         sys.stdout.write('\n')
 
 
