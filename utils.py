@@ -42,10 +42,10 @@ class Logger():
             else:
                 self.viz.line(X=np.array([step]), Y=np.array([temp]), win=self.loss_windows[loss_name], update='append')
 
-        A2B = torch.cat((images['real_A'][0:8], images['fake_B'][0:8]), 0)
-        B2A = torch.cat((images['real_B'][0:8], images['fake_A'][0:8]), 0)
-        A2B = torchvision.utils.make_grid(denormalize(A2B), nrow=8, padding=2)
-        B2A = torchvision.utils.make_grid(denormalize(B2A), nrow=8, padding=2)
+        A2B = torch.cat((images['real_A'][0:1], images['fake_B'][0:1]), 0)
+        B2A = torch.cat((images['real_B'][0:1], images['fake_A'][0:1]), 0)
+        A2B = torchvision.utils.make_grid(denormalize(A2B), nrow=1, padding=2)
+        B2A = torchvision.utils.make_grid(denormalize(B2A), nrow=1, padding=2)
         if len(self.image_windows) == 0:
             self.image_windows['A2B'] = self.viz.image(A2B, opts={'title':'A to B'})
             self.image_windows['B2A'] = self.viz.image(B2A, opts={'title':'B to A'})

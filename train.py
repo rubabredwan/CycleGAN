@@ -24,24 +24,24 @@ vis = visdom.Visdom()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 trans = transforms.Compose([
-    transforms.Resize(96),
-    transforms.CenterCrop(96),
+    transforms.Resize(256),
+    transforms.CenterCrop(256),
     transforms.ToTensor(),
     transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5))
 ])
 
-train_A = datasets.ImageFolder('/home/rubabredwan/data/A', transform=trans)
-train_B = datasets.ImageFolder('/home/rubabredwan/data/B', transform=trans)
-loader_A = torch.utils.data.DataLoader(train_A, batch_size=16, shuffle=True)
-loader_B = torch.utils.data.DataLoader(train_B, batch_size=16, shuffle=True)
+train_A = datasets.ImageFolder('/home/rubabredwan/data/ukiyoe2photo/A', transform=trans)
+train_B = datasets.ImageFolder('/home/rubabredwan/data/ukiyoe2photo/B', transform=trans)
+loader_A = torch.utils.data.DataLoader(train_A, batch_size=1, shuffle=True)
+loader_B = torch.utils.data.DataLoader(train_B, batch_size=1, shuffle=True)
 
-# A = iter(loader_A).next()
-# B = iter(loader_B).next()
-# utils.imshow(torchvision.utils.make_grid(A[0], nrow=4, padding=2), vis)
-# utils.imshow(torchvision.utils.make_grid(B[0], nrow=4, padding=2), vis)
+A = iter(loader_A).next()
+B = iter(loader_B).next()
+utils.imshow(torchvision.utils.make_grid(A[0], nrow=4, padding=2), vis)
+utils.imshow(torchvision.utils.make_grid(B[0], nrow=4, padding=2), vis)
 
-G_A2B = Generator(6).to(device)
-G_B2A = Generator(6).to(device)
+G_A2B = Generator(9).to(device)
+G_B2A = Generator(9).to(device)
 D_A = Discriminator().to(device)
 D_B = Discriminator().to(device)
 
@@ -90,9 +90,9 @@ for epoch in range(1, opt.n_epochs+1):
         optimizer_G.zero_grad()
 
         same_B = G_A2B(real_B)
-        loss_identity_B = criterion_identity(same_B, real_B)*5.0
+        loss_identity_B = criterion_identity(same_B, real_B) * 2.5
         same_A = G_B2A(real_A)
-        loss_identity_A = criterion_identity(same_A, real_A)*5.0
+        loss_identity_A = criterion_identity(same_A, real_A) * 2.5
 
         fake_B = G_A2B(real_A)
         pred_fake = D_B(fake_B)
@@ -103,10 +103,10 @@ for epoch in range(1, opt.n_epochs+1):
         loss_GAN_B2A = criterion_GAN(pred_fake, target_real)
 
         recovered_A = G_B2A(fake_B)
-        loss_cycle_ABA = criterion_cycle(recovered_A, real_A)*10.0
+        loss_cycle_ABA = criterion_cycle(recovered_A, real_A) * 10.0
 
         recovered_B = G_A2B(fake_A)
-        loss_cycle_BAB = criterion_cycle(recovered_B, real_B)*10.0
+        loss_cycle_BAB = criterion_cycle(recovered_B, real_B) * 10.0
 
         loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB
         loss_G.backward()
@@ -124,7 +124,7 @@ for epoch in range(1, opt.n_epochs+1):
         pred_fake = D_A(fake_A.detach())
         loss_D_fake = criterion_GAN(pred_fake, target_fake)
 
-        loss_D_A = (loss_D_real + loss_D_fake)*0.5
+        loss_D_A = (loss_D_real + loss_D_fake) * 0.5
 
         pred_real = D_B(real_B)
         loss_D_real = criterion_GAN(pred_real, target_real)
@@ -133,14 +133,14 @@ for epoch in range(1, opt.n_epochs+1):
         pred_fake = D_B(fake_B.detach())
         loss_D_fake = criterion_GAN(pred_fake, target_fake)
 
-        loss_D_B = (loss_D_real + loss_D_fake)*0.5
+        loss_D_B = (loss_D_real + loss_D_fake) * 0.5
         
         loss_D = loss_D_A + loss_D_B
         loss_D.backward()
         
         optimizer_D.step()
         
-        if (step % 50 == 0):
+        if (step % 250 == 0):
             
             logger.log(step, {'loss_G': loss_G, 'loss_G_identity': (loss_identity_A + loss_identity_B), 'loss_G_GAN': (loss_GAN_A2B + loss_GAN_B2A),
                         'loss_G_cycle': (loss_cycle_ABA + loss_cycle_BAB), 'loss_D': (loss_D_A + loss_D_B)}, 
@@ -152,3 +152,8 @@ for epoch in range(1, opt.n_epochs+1):
     torch.save(G_B2A.state_dict(), 'pretrained/G_B2A.pth')
     torch.save(D_A.state_dict(), 'pretrained/D_A.pth')
     torch.save(D_B.state_dict(), 'pretrained/D_B.pth')
+
+    for param_group in optimizer_G.param_groups:
+        param_group['lr'] -= 0.0002 / 50
+    for param_group in optimizer_D.param_groups:
+        param_group['lr'] -= 0.0002 / 50
