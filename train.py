@@ -154,7 +154,7 @@ for epoch in range(1, opt.n_epochs+1):
     torch.save(D_A.state_dict(), 'pretrained/D_A.pth')
     torch.save(D_B.state_dict(), 'pretrained/D_B.pth')
 
-    # for param_group in optimizer_G.param_groups:
-    #     param_group['lr'] -= 0.0002 / 50
-    # for param_group in optimizer_D.param_groups:
-    #     param_group['lr'] -= 0.0002 / 50
+    for param_group in optimizer_G.param_groups:
+        param_group['lr'] -= 0.0002 / 50
+    for param_group in optimizer_D.param_groups:
+        param_group['lr'] -= 0.0002 / 50
