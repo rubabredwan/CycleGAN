@@ -72,6 +72,7 @@ losses = {'loss_G': 0, 'loss_G_identity': 0, 'loss_G_GAN': 0, 'loss_G_cycle': 0,
 
 for epoch in range(1, opt.n_epochs+1):
     for (A, B) in zip(enumerate(loader_A), enumerate(loader_B)):
+
         step = step + 1
 
         real_A = A[1][0].to(device)
@@ -142,11 +143,11 @@ for epoch in range(1, opt.n_epochs+1):
 
 
         # Update visdom
-        if (step % 50 == 0):
+        if (step % 250 == 0):
+            logger.update_images({'fake_A': fake_A, 'fake_B': fake_B})
             logger.update_losses(step, losses)
             losses = {'loss_G': 0, 'loss_G_identity': 0, 'loss_G_GAN': 0, 'loss_G_cycle': 0, 'loss_D': 0}
-        if (step % 250 == 0):
-            logger.update_images({'real_A': real_A, 'real_B': real_B, 'fake_A': fake_A, 'fake_B': fake_B})
+
 
         
     torch.save(G_A2B.state_dict(), 'pretrained/G_A2B.pth')

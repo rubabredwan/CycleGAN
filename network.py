@@ -20,8 +20,8 @@ class Discriminator(nn.Module):
         model += disc_block(3, 64, kernel_size=4, stride=2, norm=False, padding=1)
         model += disc_block(64, 128, kernel_size=4, stride=2, norm=True, padding=1)
         model += disc_block(128, 256, kernel_size=4, stride=2, norm=True, padding=1)
-        model += disc_block(256, 512, kernel_size=4, stride=2, norm=True, padding=1)
-        model += disc_block(512, 1, kernel_size=4, stride=1, norm=True, padding=1)
+        model += disc_block(256, 512, kernel_size=4, stride=1, norm=True, padding=1)
+        model += [nn.Conv2d(512, 1, kernel_size=4, stride=1, padding=1)]
         
         self.model = nn.Sequential(*model)
 
@@ -75,7 +75,6 @@ class Generator(nn.Module):
 
         model += [nn.ReflectionPad2d(3),
                   nn.Conv2d(64, 3, kernel_size=7, stride=1),
-                  nn.InstanceNorm2d(3),
                   nn.Tanh()]
 
         self.model = nn.Sequential(*model)

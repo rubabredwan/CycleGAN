@@ -25,14 +25,12 @@ class Logger():
         self.image_windows = {}
 
     def update_images(self, images):
-        A2B = denormalize(torch.cat((images['real_A'][0], images['fake_B'][0]), 2))
-        B2A = denormalize(torch.cat((images['real_B'][0], images['fake_A'][0]), 2))
-        if len(self.image_windows) == 0:
-            self.image_windows['A2B'] = self.viz.image(A2B, opts={'title': 'A to B'})
-            self.image_windows['B2A'] = self.viz.image(B2A, opts={'title': 'B to A'})
-        else:
-            self.viz.image(A2B, win=self.image_windows['A2B'], opts={'title': 'A to B'})
-            self.viz.image(B2A, win=self.image_windows['B2A'], opts={'title': 'B to A'})
+        for title, image in images.items():
+            image = denormalize(image[0])
+            if title not in self.image_windows:
+                self.image_windows[title] = self.viz.image(image, opts={'title': title})
+            else:
+                self.viz.image(image, win=self.image_windows[title])
 
     def update_losses(self, step, losses):
 
