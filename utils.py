@@ -42,7 +42,7 @@ class Logger():
         self.prev_time = time.time()
 
         for loss_name, loss in losses.items():   
-            temp = loss.cpu().detach().numpy() / 50
+            temp = loss.cpu().detach().numpy() / 250
             sys.stdout.write(' -- %s: %.4f' % (loss_name, temp))
             if loss_name not in self.loss_windows:
                 self.loss_windows[loss_name] = self.viz.line(X=np.array([step]), Y=np.array([temp]), 

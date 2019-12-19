@@ -13,7 +13,7 @@ import visdom
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--n_epochs', type=int, default=100)
+parser.add_argument('--n_epochs', type=int, default=200)
 parser.add_argument('--load_pretrained', type=int, default=0)
 opt = parser.parse_args()
 
@@ -155,7 +155,9 @@ for epoch in range(1, opt.n_epochs+1):
     torch.save(D_A.state_dict(), 'pretrained/D_A.pth')
     torch.save(D_B.state_dict(), 'pretrained/D_B.pth')
 
-    for param_group in optimizer_G.param_groups:
-        param_group['lr'] -= 0.0002 / 50
-    for param_group in optimizer_D.param_groups:
-        param_group['lr'] -= 0.0002 / 50
+    if epoch > 100:
+        for param_group in optimizer_G.param_groups:
+            param_group['lr'] -= 0.0002 / 100
+        for param_group in optimizer_D.param_groups:
+            param_group['lr'] -= 0.0002 / 100
+        print('decreasing learning rate')
